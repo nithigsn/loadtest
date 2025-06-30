@@ -1,66 +1,133 @@
-import { useState } from 'react';
-import axios from 'axios';
-import './App.css'; // for external styling (optional)
+import { TestConfiguration } from '@/components/TestConfiguration';
+import { ResultsDashboard } from '@/components/ResultsDashboard';
+import { ResponseTimeChart } from '@/components/ResponseTimeChart';
+import { StatusCodeChart } from '@/components/StatusCodeChart';
+import { TestHistory } from '@/components/TestHistory';
+import { useTestRunner } from '@/hooks/useTestRunner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Activity, BarChart3, History, Settings, Zap, Square, AlertCircle } from 'lucide-react';
 
 function App() {
-  const [url, setUrl] = useState('');
-  const [method, setMethod] = useState('GET');
-  const [connections, setConnections] = useState(10);
-  const [rate, setRate] = useState(50);
-  const [duration, setDuration] = useState(10);
-  const [results, setResults] = useState([]);
-
-  const runTest = async () => {
-    try {
-      await axios.post('http://localhost:5000/run', {
-        url, method, connections, rate, duration
-      });
-      setTimeout(fetchResults, 3000);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchResults = async () => {
-    const res = await axios.get('http://localhost:5000/results');
-    setResults(res.data);
-  };
+  const { activeTest, testHistory, isRunning, startTest, stopTest } = useTestRunner();
 
   return (
-    <div className="app-container">
-      <h2>Benchmarking Suite</h2>
-      <div className="form-group">
-        <label>Target URL</label>
-        <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
+    <div className="min-h-screen w-full  bg-background">
+
+      <div className="flex flex-col max-w-[80vw]">
+        {/* Header */}
+        <header className="border-b">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">LoadTest Pro</h1>
+                  <p className="text-sm text-muted-foreground">Advanced API Load Testing Platform</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Test Status Indicator */}
+                {isRunning && activeTest && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="animate-pulse">
+                      <Activity className="h-3 w-3 mr-1" />
+                      Running
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {activeTest.totalRequests} / {activeTest.concurrentUsers * activeTest.requestsPerUser} requests
+                    </span>
+                  </div>
+                )}
+
+                {/* Stop Button */}
+                {isRunning && (
+                  <Button
+                    variant="destructive"
+                    onClick={stopTest}
+                    className="flex items-center gap-2"
+                  >
+                    <Square className="h-4 w-4" />
+                    Stop Test
+                  </Button>
+                )}
+
+                {/* Test Completed Indicator */}
+                {!isRunning && activeTest && activeTest.status === 'completed' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Test Completed
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-8">
+          <Tabs defaultValue="config" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="config" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Configuration
+              </TabsTrigger>
+              <TabsTrigger value="results" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Results
+              </TabsTrigger>
+              <TabsTrigger value="charts" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Charts
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <History className="h-4 w-4" />
+                History
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="config" className="mt-6">
+              <TestConfiguration onStartTest={startTest} isRunning={isRunning} />
+            </TabsContent>
+
+            <TabsContent value="results" className="mt-6">
+              <ResultsDashboard testResult={activeTest} isRunning={isRunning} />
+            </TabsContent>
+
+            <TabsContent value="charts" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ResponseTimeChart testResult={activeTest} />
+                <StatusCodeChart testResult={activeTest} />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              <TestHistory testHistory={testHistory} />
+            </TabsContent>
+          </Tabs>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t mt-12">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>LoadTest Pro - Professional API Load Testing</div>
+              <div className="flex items-center gap-4">
+                <span>Built with React + TypeScript</span>
+                <span>•</span>
+                <span>Powered by Vite</span>
+              </div>
+            </div>
+          </div>
+        </footer>
+
+
+
       </div>
-
-      <div className="form-group">
-        <label>HTTP Method</label>
-        <select value={method} onChange={e => setMethod(e.target.value)}>
-          <option value="GET">GET</option>
-          <option value="POST">POST</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Connections</label>
-        <input type="number" value={connections} onChange={e => setConnections(+e.target.value)} />
-      </div>
-
-      <div className="form-group">
-        <label>Requests/Second</label>
-        <input type="number" value={rate} onChange={e => setRate(+e.target.value)} />
-      </div>
-
-      <div className="form-group">
-        <label>Duration (sec)</label>
-        <input type="number" value={duration} onChange={e => setDuration(+e.target.value)} />
-      </div>
-
-      <button className="run-btn" onClick={runTest}>Run Benchmark</button>
-
-      <h3>Results</h3>
-      <pre className="results-output">{JSON.stringify(results, null, 2)}</pre>
     </div>
   );
 }

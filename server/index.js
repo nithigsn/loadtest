@@ -3,10 +3,13 @@ const cors = require('cors');
 const autocannon = require('autocannon');
 const fs = require('fs');
 const path = require('path');
+const morgan = require('morgan');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
 const resultsDir = path.join(__dirname, 'results');
 if (!fs.existsSync(resultsDir)) fs.mkdirSync(resultsDir);
